@@ -164,3 +164,20 @@ db.restaurants.insertOne({
 * **Lignes générées :** `969`
 
 ---
+
+## Partie 6 — Réflexion théorique
+
+### R1. Illustration des 5 V
+* **Variété :** Gérée nativement par le format documentaire BSON, qui permet d'avoir sur un même niveau des données simples, des objets géographiques (`address`) et des tableaux dynamiques (`grades`). Le jeu englobe 85 cuisines différentes.
+* **Véracité :** Repérée via la détection de données aberrantes, comme les 13 documents contenant un score d'hygiène négatif, altérant la fiabilité du dataset global.
+* **Valeur :** Démontrée par l'utilisation de requêtes croisées (`$elemMatch`) pour extraire 4 280 établissements critiques (grade B + score >20) à partir d'une masse brute de 25 000 documents, générant ainsi une information exploitable pour des réinspections.
+
+### R2. Théorème CAP & Approche BASE
+Pour une application de consultation d'hygiène ouverte au grand public, il faut prioriser la **Disponibilité (A)** sur la Cohérence (C).
+* Si l'on choisit la Cohérence, lors d'une partition réseau sur le cluster, le service renverra une erreur pour éviter d'afficher une donnée non synchronisée.
+* En choisissant la Disponibilité (principe BASE), l'application continue de fonctionner et renvoie la page demandée. On accepte le risque minime d'afficher une note d'hygiène obsolète de quelques minutes, plutôt que de rendre le service inaccessible à l'ensemble des utilisateurs.
+
+### R3. Modélisation (Embarqué vs Référencé)
+* **Estimation de taille :** Un objet d'inspection pèse environ 120 octets.
+* **Simulation 10 ans :** Avec 1 inspection par semaine sur 10 ans (520 notes), le tableau pèserait environ 62 Ko.
+* **Conclusion :** La limite maximale d'un document MongoDB étant de 16 Mo, le modèle **embarqué** actuel est parfaitement viable et ne risque pas de déborder. Son avantage majeur est la performance de lecture (pas de `$lookup`). Un modèle référencé ne deviendrait nécessaire que si l'on captait des données continues (ex: capteurs IoT avec des milliers de points de données par jour).
