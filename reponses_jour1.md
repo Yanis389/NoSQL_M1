@@ -151,3 +151,16 @@ db.restaurants.insertOne({
 * **Analyse :** Supprimer les 51 "Missing" est pertinent car la donnée géographique est manquante et fausse les statistiques par quartier. En revanche, garder les 738 tableaux vides est justifié : un restaurant fraîchement ouvert sans historique d'inspection reste une donnée légitime et valide.
 
 ---
+
+## Partie 5 — Automatisation 
+
+### Q27. Bilan du pipeline
+* **Total de départ (Q1) :** `25359`
+* **Total final :** `25309`
+* **Détail du delta :** L'écart exact est de `-50` documents. Cela correspond à la suppression des 51 arrondissements "Missing" de la Q25, compensée par l'ajout du nouveau restaurant (YH Bistro) à la Q20.
+
+### Q28. Exportation de données
+* **Commande shell :** `docker exec mongo-ipssi mongoexport --username admin --password ipssi2025 --authenticationDatabase admin --db nyc --collection restaurants --query '{"borough":"Staten Island"}' --out /tmp/staten_island.json`
+* **Lignes générées :** `969`
+
+---
