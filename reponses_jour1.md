@@ -135,3 +135,19 @@ db.restaurants.insertOne({
 * **Impact :** 345 documents modifiés (incluant YH Bistro créé en Q20).
 
 ---
+
+## Partie 4 — Suppression & qualité
+
+### Q24. Arrondissements "Missing"
+* **Commande :** `db.restaurants.countDocuments({ borough: "Missing" })`
+* **Résultat :** `51`
+
+### Q25. Nettoyage
+* **Commande :** `db.restaurants.deleteMany({ borough: "Missing" })`
+* **Nouveau total collection :** `25309` documents.
+
+### Q26. Choix de gouvernance
+* **Pourcentage des tableaux vides :** 738 / 25309 * 100 = **2.91 %**
+* **Analyse :** Supprimer les 51 "Missing" est pertinent car la donnée géographique est manquante et fausse les statistiques par quartier. En revanche, garder les 738 tableaux vides est justifié : un restaurant fraîchement ouvert sans historique d'inspection reste une donnée légitime et valide.
+
+---
