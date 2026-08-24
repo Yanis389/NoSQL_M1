@@ -108,3 +108,30 @@
 * **Résultat :** `Murals On 54/Randolphs'S` (Score : 131)
 
 ---
+
+## Partie 3 — Création & mise à jour
+
+### Q20. Insertion (CREATE)
+* **Commande exécutée :**
+db.restaurants.insertOne({
+  name: "YH Bistro",
+  borough: "Montpellier",
+  cuisine: "French",
+  address: { coord: [3.8767, 43.6108] },
+  grades: [{ grade: "A", score: 7, date: new Date() }]
+})
+
+### Q21. Ajout d'une note (Push)
+* **Cible :** `restaurant_id: "30075445"`
+* **Commande :** `db.restaurants.updateOne({ restaurant_id: "30075445" }, { $push: { grades: { grade: "A", score: 3, date: new Date() } } })`
+* **Résultat :** Le nombre de notes passe de 5 à 6.
+
+### Q22. Marquer le risque
+* **Commande :** `db.restaurants.updateMany({ "grades.score": { $gt: 50 } }, { $set: { risque: "eleve" } })`
+* **Impact :** 349 documents modifiés.
+
+### Q23. Label qualité
+* **Commande :** `db.restaurants.updateMany({ cuisine: "French" }, { $set: { label_qualite: true } })`
+* **Impact :** 345 documents modifiés (incluant YH Bistro créé en Q20).
+
+---
