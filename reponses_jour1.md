@@ -35,7 +35,7 @@
 ### Q7. Restaurants avec le nom exact "Subway" et 3 premiers éléments
 * **Commande :** `db.restaurants.countDocuments({ name: "Subway" })` -> `421`
 * **Affichage des 3 premiers :** `db.restaurants.find({ name: "Subway" }, { name: 1, borough: 1, _id: 0 }).limit(3)`
-* **Résultat :**
+* **Résultat :**json
 [
   { "borough": "Manhattan", "name": "Subway" },
   { "borough": "Queens", "name": "Subway" },
@@ -64,5 +64,47 @@
 ### Q11. Restaurant avec l'ID "30075445"
 * **Commande :** `db.restaurants.find({ restaurant_id: "30075445" }, { name: 1, _id: 0 })`
 * **Résultat :** `Morris Park Bake Shop`
+
+---
+
+## Partie 2 — Tableaux & sous-documents
+
+### Q12. Au moins une note > 50
+* **Commande :** `db.restaurants.countDocuments({ "grades.score": { $gt: 50 } })`
+* **Résultat :** `349`
+
+### Q13. Restaurants mal notés
+* **(a) Grade "C" dans l'historique :** `db.restaurants.countDocuments({ "grades.grade": "C" })` -> `2708`
+* **(b) Première entrée égale à "C" :** `db.restaurants.countDocuments({ "grades.0.grade": "C" })` -> `220`
+* **(c) Analyse :** Le tableau `grades` classe les inspections de la plus récente (indice 0) à la plus ancienne. L'écart de 2488 documents s'explique par le fait que beaucoup d'établissements ont eu un "C" dans le passé mais se sont améliorés. La requête (b) est donc la seule qui reflète l'état actuel.
+
+### Q14. Tableau d'inspections vide
+* **Commande :** `db.restaurants.countDocuments({ grades: { $size: 0 } })`
+* **Résultat :** `738`
+* **Explication métier :** Ce sont probablement des établissements nouvellement immatriculés qui n'ont pas encore reçu la visite des services sanitaires.
+
+### Q15. Au moins 6 notes
+* **Commande :** `db.restaurants.countDocuments({ "grades.5": { $exists: true } })`
+* **Résultat :** `3864`
+
+### Q16. Dernière note égale à "A"
+* **Commande :** `db.restaurants.countDocuments({ "grades.0.grade": "A" })`
+* **Résultat :** `20687`
+
+### Q17. L'importance de $elemMatch
+* **(a) Sans $elemMatch :** `db.restaurants.countDocuments({ "grades.grade": "B", "grades.score": { $gt: 20 } })` -> `4908`
+* **(b) Avec $elemMatch :** `db.restaurants.countDocuments({ grades: { $elemMatch: { grade: "B", score: { $gt: 20 } } } })` -> `4280`
+* **(c) Pourquoi l'utiliser :** La première requête valide le document si une inspection "x" a eu un B et une inspection "y" a eu >20. `$elemMatch` force la condition : le grade B ET le score >20 doivent obligatoirement provenir du même objet d'inspection.
+
+### Q18. Anomalies de notes
+* **(a) Scores négatifs :** `db.restaurants.countDocuments({ "grades.score": { $lt: 0 } })` -> `13`
+* **(b) Impact sur la moyenne :**
+  * Moyenne globale : `11.4348`
+  * Moyenne sans les anomalies : `11.4365`
+* **(c) Décision :** L'écart mathématique est infime (~0.015%), mais d'un point de vue métier et gouvernance, un score négatif est une aberration. Il faudrait purger ou corriger ces 13 entrées.
+
+### Q19. Score le plus élevé
+* **Commande :** `db.restaurants.find({}, { name: 1, "grades.score": 1, _id: 0 }).sort({ "grades.score": -1 }).limit(1)`
+* **Résultat :** `Murals On 54/Randolphs'S` (Score : 131)
 
 ---
