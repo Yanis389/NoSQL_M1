@@ -1,0 +1,31 @@
+# Python & Environnement virtuel
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+venv/
+env/
+*.egg-info/
+
+# Données brutes & téléchargements
+*.json
+zips.json
+/data/
+/db/
+
+# Configuration & Secrets
+.env
+*.key
+
+# macOS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+
+# IDE & Editeurs
+.vscode/
+.idea/
+*.swp
