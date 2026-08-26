@@ -112,3 +112,78 @@ Calculs :
 * Conclusion : Un secondary tombé le vendredi à 18 h ne pourra pas rattraper son retard le lundi à 9 h. L'oplog aura tourné en boucle et écrasé les anciennes entrées, exigeant une resynchronisation totale (resync).
 
 ---
+
+## Partie 2 — Lire et écrire dans un Replica Set
+
+### Q13. Lecture sur un Secondary
+Commande :
+docker exec mongo2 mongosh --quiet census --eval 'db.zips.countDocuments({})'
+La lecture fonctionne directement car mongosh (v2.0+) gère automatiquement la préférence de lecture implicite lors d'une connexion directe à un nœud secondaire.
+
+### Q14. Écriture sur un Secondary
+Commande :
+docker exec mongo2 mongosh --quiet census --eval 'db.zips.insertOne({test: 1})'
+* Code d'erreur : NotWritablePrimary (code: 10107).
+* Raison : Seul le Primary est autorisé à traiter les écritures pour garantir la cohérence et l'ordonnancement dans l'oplog.
+
+### Q15. Retard de réplication et nature asynchrone
+Commande :
+docker exec mongo1 mongosh --quiet --eval 'rs.printSecondaryReplicationInfo()'
+Lors de l'écriture en lot de 1 000 documents, un léger décalage temporaire (quelques millisecondes) apparaît sur le secondary avant d'atteindre 0, ce qui démontre le caractère asynchrone de la réplication par défaut (w: 1).
+
+### Q16. Read Preference
+* primary : Lit strictly sur le Primary (garantit la fraîcheur absolue des données).
+* secondary : Décharge les lectures sur un Secondary (risque de lire des données périmées / stale data).
+* Cas métier acceptable : Génération de rapports statistiques analytiques.
+* Cas métier dangereux : Solde de compte bancaire immédiatement après un virement.
+
+---
+
+## Partie 3 — Failover & Quorum
+
+### Q17 à Q22. Synthèse des pannes
+(Les mesures détaillées figurent dans le fichier failover.md).
+
+### Q21. Analyse du délai de panne brutale (docker kill)
+* Délai d'élection mesuré : ~11,8 secondes.
+* Le délai est légèrement supérieur à electionTimeoutMillis (10 000 ms) car il inclut l'intervalle de heartbeat (heartbeatIntervalMillis = 2000 ms) avant le déclenchement officiel de l'élection.
+
+### Q23. Rupture de Quorum
+Commandes :
+docker stop mongo2 mongo3
+docker exec mongo1 mongosh --quiet --eval 'print("Writable:", db.hello().isWritablePrimary); print("State:", rs.status().myState)'
+
+Résultats :
+* (a) Immédiatement après la coupure, mongo1 bascule de isWritablePrimary: true (état 1) à isWritablePrimary: false (état 2 / SECONDARY).
+* (b) Écriture : Refusée avec NotWritablePrimaryError. Lecture avec readPreference: primary : Refusée.
+* (c) Règle de majorité : La majorité d'un cluster à 3 nœuds est 2. Avec 2 pannes, il ne reste qu'un membre sur 3 (pas de majorité possible), le nœud se destitue donc lui-même. Un cluster de 4 nœuds a une majorité de 3 : il ne tolère toujours qu'une seule panne (4 - 3 = 1), tout comme un cluster à 3 nœuds.
+
+---
+
+## Partie 4 — Write Concern & Read Concern
+
+### Q24. Différence de garantie entre w: 1 et w: "majority"
+* w: 1 confirme l'écriture dès que le Primary l'a écrite dans son journal local.
+* w: "majority" attend la confirmation par au moins 2 nœuds sur 3.
+* En cas de docker kill brutal du Primary avant la réplication, une écriture validée en w: 1 peut être définitivement perdue (rollback).
+
+### Q25. Write Concern invalide (w: 4)
+Commande :
+docker exec mongo1 mongosh --quiet census --eval 'db.demo.insertOne({a: 1}, {writeConcern: {w: 4, wtimeout: 3000}})'
+* Code d'erreur : CannotSatisfyWriteConcern.
+* MongoDB rejette immédiatement la requête sans attendre les 3 secondes du wtimeout car le nombre de nœuds demandés (4) dépasse le nombre total de membres configurés dans le Replica Set (3).
+
+### Q26. Panne d'un membre et Write Concern
+Après docker stop mongo3 :
+* w: "majority" (2 nœuds nécessaires) : Passe avec succès.
+* w: 3 (3 nœuds nécessaires) : Échoue avec WriteConcernFailed au bout de 3000 ms.
+* countDocuments({}) : Les deux documents sont présents en base.
+* Explication : L'échec d'un Write Concern signifie que le délai d'attente de confirmation a expiré, et non que l'écriture a été annulée. L'écriture est bien appliquée sur le Primary. Si l'application rejoue la requête après l'erreur, elle risque de créer un doublon en l'absence d'identifiant unique.
+
+### Q27. Impact du paramètre j: true
+j: true force le changement à être écrit sur le journal disque avant de confirmer. Cela protège contre une perte totale d'alimentation simultanée sur l'ensemble des 3 machines.
+
+### Q28. Propriétés de readConcern: "majority"
+Il garantit que la donnée lue a été confirmée par la majorité du cluster et ne pourra jamais être annulée par un rollback suite à la panne du Primary.
+
+---
