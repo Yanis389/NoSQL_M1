@@ -187,3 +187,31 @@ j: true force le changement à être écrit sur le journal disque avant de confi
 Il garantit que la donnée lue a été confirmée par la majorité du cluster et ne pourra jamais être annulée par un rollback suite à la panne du Primary.
 
 ---
+
+## Partie 6 — Réflexions SRE (R1 → R4)
+
+### R1. Analyse d'un Replica Set à 4 nœuds
+* Un set de 4 membres avec 2 pannes dispose de 2 membres actifs, ce qui est inférieur à la majorité requise de 3 (4/2 + 1 = 3) : écritures refusées.
+* Un set de 3 membres avec 1 panne dispose de 2 membres actifs, ce qui atteint la majorité requise de 2 : écritures acceptées.
+* Réponse au collègue : « Ajouter un 4ᵉ nœud n'augmente pas la tolérance aux pannes (qui reste de 1 panne) mais augmente le risque d'indisponibilité en cas de double panne. »
+* Alternative budgétaire : Conserver 3 nœuds de données ou ajouter un Arbitre (sur un hôte distant séparé) si un nœud de données n'est pas financable.
+
+### R2. Réplication vs Sharding
+* Réplication : Résout le problème de la haute disponibilité et de la tolérance aux pannes.
+* Sharding : Résout le problème du passage à l'échelle en volume de données et en débit d'écriture.
+* Calcul d'un cluster 3 shards répliqués :
+  * Config Servers (Replica Set de 3 nœuds) = 3 machines
+  * Routeurs mongos = 2 machines
+  * 3 Shards (chacun étant un Replica Set de 3 nœuds) = 9 machines
+  * Total = 14 machines.
+* Un cluster shardé non répliqué perd la totalité d'un segment de données à la moindre panne d'un shard (aucune tolérance de panne).
+
+### R3. Réglage de electionTimeoutMillis
+* (a) Réduction à 2000 ms : Le temps moyen de bascule passe de ~11,8 s à ~3,8 s (réduction d'un facteur 3,1, et non 5). La phase d'élection elle-même et l'initialisation du nouveau Primary consomment un temps fixe invariable (~1,5 s).
+* (b) Risque d'un timeout trop bas : Des micro-lags réseau provoqueront de faux ré-élections intempestives (flapping), déstabilisant continuellement le cluster.
+* (c) Recommandation DSI : Conserver la valeur par défaut de 10 000 ms. Elle offre un compromis optimal entre détection rapide de panne et stabilité réseau en production.
+
+### R4. Le chiffre honnête pour la DSI
+« Lors d'une panne serveur brutale, notre service subit une interruption des écritures d'une durée maximale de 12,2 secondes vue de l'application, sans aucune perte de données à condition d'utiliser le paramètre writeConcern: "majority" et d'activer retryWrites=true sur nos drivers. »
+
+Annoncer le seul chiffre de la Q21 (délai d'élection brute du cluster) masque la période réelle d'erreur ressentie par les applications clients, ainsi que les risques de perte de données en l'absence de configuration w: "majority".
