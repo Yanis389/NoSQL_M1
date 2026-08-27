@@ -137,3 +137,25 @@ Dans ce TP, nous n'avons que ~29 470 documents. Avec la taille par défaut de 12
 
 **Q30. `$geoNear` sur la collection `stations`**
 - `$geoNear` doit **absolument être le premier stage** pour tirer parti de l'index `2dsphere`.
+
+## Partie C — Réflexion SRE
+
+**R1. Le tableau de bord quotidien**
+- **Architecture :** Pipeline avec `$merge` vers `stations_stats` planifié à 5h50.
+- **Gain :** Le dashboard lit 400 documents pré-calculés au lieu d'exécuter un `$group` sur des milliers/millions de trajets.
+- **Compromis :** La fraîcheur des données est décalée d'une journée (latence batch), ce qui est suffisant pour le décisionnel.
+
+**R2. La règle d'écriture des pipelines**
+- L'optimiseur ne remonte un filtre que si celui-ci porte sur un champ présent *avant* modification. S'il s'agit d'un champ calculé par le `$group` ou supprimé par `$project`, le filtre ne sera pas remonté. Il faut donc écrire ses `$match` le plus tôt possible par sécurité.
+
+**R3. Le chiffre unique, et son coût**
+- **(a)** "La durée moyenne d'usage normal d'un vélo est de X min (calculée sur 99,5% des trajets après exclusion des locations > 3h)."
+- **(b)** La **médiane** (`$median`) est mathématiquement insensible aux valeurs extrêmes, contrairement à la moyenne.
+- **(c)** Un chiffre brut cache le contexte (vélos volés) et provoque de mauvaises décisions stratégiques.
+
+**R4. `explain()` ou profiler ?**
+- `explain()` analyse la *stratégie théorique* (index). Le profiler enregistre la *pratique réelle* (lenteurs disques, locks).
+- **Incident 14h :** 
+  1. `mongostat` (macroscopique : saturation CPU/RAM ?).
+  2. `profiler` (quelle requête précise embouteille ?).
+  3. `explain()` (pourquoi cette requête bloque : index manquant ?).
