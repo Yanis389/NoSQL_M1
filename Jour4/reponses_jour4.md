@@ -76,3 +76,43 @@ Dans ce TP, nous n'avons que ~29 470 documents. Avec la taille par défaut de 12
 **Q11. Plage temporelle et anomalie**
 - Requête : `db.trips.aggregate([{ $group: { _id: null, min: { $min: "$start time" }, max: { $max: "$stop time" } } }])`
 - **Observation :** La plage s'étend au-delà de janvier 2016 (débordements sur février, valeurs aberrantes de 1970). Dans la vraie vie, une base de données brute contient toujours des débordements nécessitant un nettoyage.
+
+### B1 — Aggregation Pipeline : les fondamentaux
+*(Requêtes exactes dans `pipelines.js`)*
+
+**Q12. Top 5 des stations de départ**
+- Les stations comme `Pershing Square North` et `W 21 St & 6 Ave` figurent en tête (grands nœuds de transit).
+
+**Q13. Répartition par type d'abonnement**
+- **Hypothèse métier :** Les abonnés (Subscriber) font des trajets pendulaires domicile-travail très courts et efficaces. Les clients occasionnels (Customer) font des trajets beaucoup plus longs (touristes).
+
+**Q14. Trajets par jour**
+- Nous obtenons un nombre de jours supérieur à 31, ce qui confirme que la plage déborde de janvier.
+
+**Q15. Heure de pointe**
+- Les heures de pointe sont `8h` et `17h-18h`, correspondant à l'usage domicile-travail classique.
+
+**Q16. Distribution des durées**
+- La tranche la plus peuplée est `[300, 600[` (5 à 10 minutes) ou `[600, 1800[` (10 à 30 minutes).
+
+**Q17. Boucles**
+- Un certain nombre de trajets finissent exactement là où ils ont commencé.
+
+### B2 — Qualité de données et optimiseur
+**Q18. Le champ piégé**
+- **Tous les `Customer` ont une année de naissance stockée en chaîne de caractères**, alors que les `Subscriber` l'ont en entier. La requête `{ "birth year": { $lt: 1950 } }` est silencieusement fausse car une chaîne BSON est toujours considérée comme supérieure à un nombre.
+
+**Q19. Âge moyen**
+- L'âge du plus vieil usager remonte souvent à plus de 100 ans. C'est absurde, c'est une valeur par défaut. En production, j'ajouterais un `$match` sanitaire.
+
+**Q20. Valeurs aberrantes**
+- Certains trajets durent **plus de 24 heures**. (Vélos volés, mal raccrochés).
+
+**Q21. La question d'écart**
+- Les `Customer` sont infiniment plus affectés car plus sujets aux vols/oublis. Je communiquerais la **médiane** à la direction (insensible aux valeurs extrêmes).
+
+**Q22. `$match` en premier — vraiment ?**
+- Les deux plans d'exécution sont **identiques**. L'optimiseur a fait du *Match Pushdown* et a déplacé le `$match` avant le `$group`.
+
+**Q23. La limite de l'optimiseur**
+- L'optimiseur ne peut pas remonter le filtre car il dépend d'un champ `n` généré *par* le `$group`.
