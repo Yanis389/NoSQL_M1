@@ -63,3 +63,16 @@ Dans ce TP, nous n'avons que ~29 470 documents. Avec la taille par défaut de 12
 | `{ _id: "hashed" }` | Maximale | Excellente (50/50) | Non (Broadcast) | **Refusé** |
 | `{ zip: 1 }` | Élevée (29470) | Bonne | Uniquement si requête sur zip | **Bon** |
 | `{ state: 1, zip: 1 }` | Élevée (29470) | Bonne | Oui (requêtes sur state ciblées) | **Excellent** |
+
+## PARTIE B — Performances & diagnostic
+
+### B0 — Environnement et import
+**Q10. Les espaces dans les noms de champs**
+- **Conséquence :** La présence d'espaces nous oblige à toujours entourer les noms de champs de guillemets dans nos requêtes, et on perd la notation pointée simple.
+- **(a) Syntaxe pour un `find` :** `db.trips.find({ "start station id": 476 })`
+- **(b) Syntaxe dans `$group` :** `{ _id: "$start station id" }`
+- **Oubli des guillemets :** Le shell va crasher avec une erreur de syntaxe (`SyntaxError`) car l'espace est illégal en JS pour une clé non quotée.
+
+**Q11. Plage temporelle et anomalie**
+- Requête : `db.trips.aggregate([{ $group: { _id: null, min: { $min: "$start time" }, max: { $max: "$stop time" } } }])`
+- **Observation :** La plage s'étend au-delà de janvier 2016 (débordements sur février, valeurs aberrantes de 1970). Dans la vraie vie, une base de données brute contient toujours des débordements nécessitant un nettoyage.
