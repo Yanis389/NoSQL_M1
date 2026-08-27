@@ -116,3 +116,24 @@ Dans ce TP, nous n'avons que ~29 470 documents. Avec la taille par défaut de 12
 
 **Q23. La limite de l'optimiseur**
 - L'optimiseur ne peut pas remonter le filtre car il dépend d'un champ `n` généré *par* le `$group`.
+
+### B3 — Matérialisation et jointure
+**Q25. `$out` vs `$merge`**
+- `$merge` permet le rafraîchissement incrémental en mettant à jour uniquement les statistiques du jour sans écraser toute la table.
+
+**Q26. `$lookup`**
+- Une station d'arrivée très forte ("puits") signifie un endroit où les usagers convergent (quartier résidentiel le soir) nécessitant une redistribution logistique (camions).
+
+### B4 — Index géospatial `2dsphere`
+*(Scripts dans `geo.js`)*
+**Q27. Sans index**
+- **Pourquoi obligatoire :** Calculer la distance de Haversine pour toute la collection plomberait le CPU, MongoDB refuse un COLLSCAN géospatial.
+
+**Q28. Ordre de `$near`**
+- Les résultats sont renvoyés **strictement triés du plus proche au plus éloigné**.
+
+**Q29. Le piège de `countDocuments` avec `$near`**
+- `countDocuments` génère un `$match` enfoui, alors que `$near` exige d'être la requête principale. Solution : utiliser `$geoWithin` + `$centerSphere`.
+
+**Q30. `$geoNear` sur la collection `stations`**
+- `$geoNear` doit **absolument être le premier stage** pour tirer parti de l'index `2dsphere`.
