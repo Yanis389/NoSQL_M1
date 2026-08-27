@@ -33,3 +33,17 @@ Totals
 - Nombre de chunks : 6 chunks répartis entre A et B.
 - Nouveaux pourcentages : ~49.5% sur shardA et ~50.5% sur shardB.
 - Évolution : L'écart s'est resserré d'environ 4 points. La distribution s'approche des 50/50, mais la racine du problème des gros États n'est pas réglée.
+
+## Q6. Explain `executionStats`
+
+### Requête 1 (Targeted sur la Shard Key `state`)
+- **Stage racine** : `SINGLE_SHARD`
+- **Shards interrogés** : 1 seul shard
+- **nReturned** : ~1500
+- **totalDocsExamined** : ~1500 (ratio 1:1)
+
+### Requête 2 (Broadcast sur `city`)
+- **Stage racine** : `SHARD_MERGE`
+- **Shards interrogés** : 2 shards (`shardA`, `shardB`)
+- **nReturned** : ~150
+- **totalDocsExamined** : 29470 (toute la base)

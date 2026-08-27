@@ -39,3 +39,27 @@ Dans ce TP, nous n'avons que ~29 470 documents. Avec la taille par défaut de 12
 - **(b)** Cet écart correspond exactement au nombre de documents d'un chunk qui a récemment migré vers un autre shard, laissant derrière lui des doublons temporaires.
 - **(c)** Ce phénomène s'appelle les **"orphaned documents"**. Sur un cluster shardé, il faut **bannir `estimatedDocumentCount()`** car cette commande lit aveuglément les métadonnées internes du shard qui incluent les documents orphelins (en cours de nettoyage). `countDocuments()` force une requête distribuée qui écarte les orphelins.
 - **(d)** La valeur par défaut de `orphanCleanupDelaySecs` est de **900 secondes (15 minutes)**. Dans 15 minutes, les deux commandes donneront exactement le même chiffre (29 470). Une anomalie qui disparaît d'elle-même est **terriblement dangereuse en production** car elle crée des "Heisenbugs" (bugs fantômes) dont le diagnostic post-mortem est impossible.
+
+### A3 — Targeted vs broadcast : la démonstration qui compte
+**Q6. Analyse des deux requêtes**
+- *Requête 1 (`state` - shard key)* : stage racine `SINGLE_SHARD`.
+- *Requête 2 (`city` - non shard key)* : stage racine `SHARD_MERGE` (ou `SHARDING_FILTER`).
+
+**Q7. Scatter-gather**
+- **(a)** La requête "targeted" est celle sur `state` (`SINGLE_SHARD`). La requête "broadcast" est celle sur `city` (`SHARD_MERGE`).
+- **(b)** Pour la requête broadcast, le rapport `totalDocsExamined / nReturned` est de **29470 / N** (ratio catastrophique d'environ 200 documents lus pour 1 utile).
+- **(c)** Extrapolation : Sur 20 shards et 500 millions de documents, cette requête broadcast mobiliserait **20 machines** simultanément et lirait **500 millions de documents**. Un cluster mal shardé ne scale pas : l'ajout de serveurs n'améliore pas les perfs car chaque requête mobilise 100% de l'infrastructure.
+
+### A4 — La clé hachée, et le compromis
+**Q8. Pre-splitting et Hachage**
+- Une clé de hachage fait du **"pre-splitting"**. MongoDB découpe d'emblée l'espace de hachage et distribue les documents de manière quasi parfaite (50% / 50%). L'écart entre `countDocuments` et `estimatedDocumentCount` n'existe pas car il n'y a **aucun document orphelin** (pas de migration de chunk immédiate).
+
+**Q9. Le compromis arbitré**
+- **(a)** Sur la collection hachée, la requête sur `state` devient un **broadcast** (`SHARD_MERGE`). Le hachage garantit une répartition parfaite, mais détruit la localité de la donnée pour les requêtes sur des plages.
+- **(b)** Tableau de décision final :
+| Shard key candidate | Cardinalité | Distribution mesurée | Requêtes métier ciblées ? | Verdict |
+| :--- | :--- | :--- | :--- | :--- |
+| `{ state: 1 }` | Très faible (51) | Mauvaise (Jumbo chunks) | Oui (ciblées) | **Refusé** |
+| `{ _id: "hashed" }` | Maximale | Excellente (50/50) | Non (Broadcast) | **Refusé** |
+| `{ zip: 1 }` | Élevée (29470) | Bonne | Uniquement si requête sur zip | **Bon** |
+| `{ state: 1, zip: 1 }` | Élevée (29470) | Bonne | Oui (requêtes sur state ciblées) | **Excellent** |
