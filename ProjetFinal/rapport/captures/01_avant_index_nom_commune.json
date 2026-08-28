@@ -1,0 +1,17 @@
+{
+  "description": "Plan d'exécution AVANT la création de l'index sur nom_commune",
+  "date_capture": "2026-08-28",
+  "query": "db.ventes.find({ nom_commune: 'Montpellier' }).explain('executionStats')",
+  "route_api": "GET /agg/explain?commune=Montpellier  (avec AUTO_INDEX=false)",
+  "resultats": {
+    "stages": ["COLLSCAN"],
+    "stage_racine": "COLLSCAN",
+    "index_utilise": false,
+    "totalDocsExamined": 29565,
+    "totalKeysExamined": 0,
+    "nReturned": 5588,
+    "ratio_examines_sur_rendus": 5.3,
+    "executionTimeMillis": 28
+  },
+  "commentaire": "Sans aucun index, MongoDB doit parcourir la totalité des 29 565 documents de la collection (COLLSCAN = Collection Scan). Le ratio docs_examinés/docs_retournés est de 5.3 : pour chaque document utile, MongoDB en examine 5 inutilement. Cela est particulièrement pénalisant pour des communes peu représentées (ex: Laroque, 15 ventes) pour lesquelles le scan complet reste inévitable."
+}

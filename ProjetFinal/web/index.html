@@ -1,0 +1,500 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Observatoire Immobilier — Hérault (34)</title>
+  <style>
+    :root {
+      --bleu: #1a56db;
+      --bleu-clair: #e8f0fe;
+      --fond: #f8fafc;
+      --blanc: #ffffff;
+      --bord: #e2e8f0;
+      --texte: #1e293b;
+      --muted: #64748b;
+      --vert: #16a34a;
+      --rouge: #dc2626;
+      --orange: #ea580c;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font: 15px/1.6 'Segoe UI', system-ui, sans-serif; background: var(--fond); color: var(--texte); }
+
+    /* ── Header ── */
+    header {
+      background: var(--bleu);
+      color: #fff;
+      padding: 18px 32px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      box-shadow: 0 2px 8px rgba(0,0,0,.15);
+    }
+    .header-icon { font-size: 2rem; }
+    header h1 { font-size: 1.35rem; font-weight: 700; }
+    header p  { font-size: 0.82rem; opacity: .8; margin-top: 2px; }
+
+    /* ── Layout ── */
+    main { max-width: 1020px; margin: 28px auto; padding: 0 16px; }
+
+    /* ── Barre de statut ── */
+    .status-bar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--blanc);
+      border: 1px solid var(--bord);
+      border-radius: 10px;
+      padding: 10px 18px;
+      margin-bottom: 22px;
+      font-size: .88rem;
+    }
+    .dot { width: 10px; height: 10px; border-radius: 50%; background: #cbd5e1; flex-shrink: 0; }
+    .dot.ok  { background: var(--vert); }
+    .dot.err { background: var(--rouge); }
+    .status-bar .refresh {
+      margin-left: auto;
+      background: none;
+      border: 1px solid var(--bord);
+      border-radius: 6px;
+      padding: 4px 10px;
+      font-size: .82rem;
+      cursor: pointer;
+      color: var(--muted);
+    }
+    .status-bar .refresh:hover { background: var(--fond); }
+
+    /* ── Boutons principaux ── */
+    .btn-group { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 24px; }
+    .btn {
+      padding: 10px 18px;
+      border: none;
+      border-radius: 8px;
+      background: var(--bleu);
+      color: #fff;
+      font-size: .9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: filter .15s, transform .1s;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+    .btn:hover  { filter: brightness(1.12); }
+    .btn:active { transform: scale(.97); }
+    .btn.active { background: #1e40af; box-shadow: 0 0 0 3px rgba(26,86,219,.25); }
+
+    /* ── Cards ── */
+    .card {
+      background: var(--blanc);
+      border: 1px solid var(--bord);
+      border-radius: 12px;
+      padding: 22px 26px;
+      margin-bottom: 22px;
+      animation: fadeIn .25s ease;
+    }
+    @keyframes fadeIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
+    .card h2 { font-size: 1.05rem; margin-bottom: 4px; color: var(--bleu); }
+    .card .subtitle { font-size: .8rem; color: var(--muted); margin-bottom: 14px; }
+    .card code { background: #f1f5f9; border-radius: 4px; padding: 1px 5px; font-size: .82rem; }
+
+    /* ── Tables ── */
+    table { width: 100%; border-collapse: collapse; font-size: .88rem; }
+    thead th { background: var(--fond); border-bottom: 2px solid var(--bord); padding: 8px 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; font-size: .75rem; letter-spacing: .04em; }
+    tbody td { padding: 9px 12px; border-bottom: 1px solid var(--bord); }
+    tbody tr:last-child td { border-bottom: none; }
+    tbody tr:hover td { background: #f8faff; }
+
+    /* ── Badges ── */
+    .badge { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: .78rem; font-weight: 700; }
+    .badge-bleu   { background: var(--bleu-clair); color: var(--bleu); }
+    .badge-vert   { background: #dcfce7; color: #15803d; }
+    .badge-orange { background: #ffedd5; color: var(--orange); }
+    .badge-gris   { background: #f1f5f9; color: var(--muted); }
+
+    /* ── Stars ── */
+    .stars { color: #f59e0b; letter-spacing: -.05em; }
+
+    /* ── Barre de progression ── */
+    .bar-wrap { background: var(--fond); border-radius: 6px; height: 14px; overflow: hidden; }
+    .bar-fill  { height: 100%; background: var(--bleu); border-radius: 6px; transition: width .5s ease; }
+
+    /* ── JSON ── */
+    pre.json { background: #1e293b; color: #a5f3fc; padding: 14px; border-radius: 8px; font-size: .8rem; overflow-x: auto; margin-top: 10px; }
+
+    /* ── Loader / Error ── */
+    .loader { text-align: center; color: var(--muted); padding: 30px; font-size: .9rem; }
+    .error  { text-align: center; color: var(--rouge); padding: 16px; font-size: .88rem; }
+
+    /* ── Pill tab pour l'explain ── */
+    .pill-group { display:flex; gap:8px; margin-bottom:14px; }
+    .pill { padding:5px 14px; border-radius:999px; border:1px solid var(--bord); background:var(--fond); font-size:.82rem; cursor:pointer; }
+    .pill.on { background:var(--bleu); color:#fff; border-color:var(--bleu); }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-icon">🏠</div>
+  <div>
+    <h1>Observatoire Immobilier — Hérault (34)</h1>
+    <p>Projet NoSQL M1 &nbsp;·&nbsp; MongoDB &nbsp;·&nbsp; FastAPI &nbsp;·&nbsp; DVF 2023-2024</p>
+  </div>
+</header>
+
+<main>
+
+  <!-- Barre de statut -->
+  <div class="status-bar">
+    <div class="dot" id="dot"></div>
+    <span id="status-txt">Vérification de l'API…</span>
+    <button class="refresh" onclick="checkHealth()">↻ Actualiser</button>
+  </div>
+
+  <!-- Boutons -->
+  <div class="btn-group">
+    <button class="btn" id="btn1" onclick="showTopCommunes()">
+      🏆 Top 10 communes les + chères
+    </button>
+    <button class="btn" id="btn2" onclick="showRepartition()">
+      📊 Répartition Maisons / Apparts
+    </button>
+    <button class="btn" id="btn3" onclick="showGeospatial()">
+      📍 Ventes autour de Montpellier
+    </button>
+    <button class="btn" id="btn4" onclick="showExplain()" style="background:#64748b">
+      🔍 Plan d'exécution (explain)
+    </button>
+    <button class="btn" id="btn5" onclick="showEvolution()" style="background:#059669">
+      📈 Évolution des prix
+    </button>
+  </div>
+
+  <!-- Zone résultats -->
+  <div id="zone"></div>
+
+</main>
+
+<script>
+const API = 'http://localhost:8000';
+
+// ── Utils ─────────────────────────────────────────────────────────────────
+async function req(path) {
+  const r = await fetch(API + path);
+  if (!r.ok) throw new Error(r.status + ' ' + r.statusText);
+  return r.json();
+}
+function zone(html) { document.getElementById('zone').innerHTML = html; }
+function loading()  { zone('<div class="card loader">⏳ Chargement des données…</div>'); }
+function err(msg)   { zone(`<div class="card error">❌ Erreur : ${msg}</div>`); }
+function fmt(n)     { return Number(n).toLocaleString('fr-FR'); }
+function activeBtn(id) {
+    ['btn1','btn2','btn3','btn4','btn5'].forEach(b => document.getElementById(b).classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+// ── Health ────────────────────────────────────────────────────────────────
+async function checkHealth() {
+  const dot = document.getElementById('dot');
+  const txt = document.getElementById('status-txt');
+  try {
+    const d = await req('/health');
+    dot.className = 'dot ok';
+    txt.textContent = `API connectée — base "${d.base}", ${fmt(d.ventes)} ventes, ${d.communes_meta} communes`;
+  } catch(e) {
+    dot.className = 'dot err';
+    txt.textContent = 'API inaccessible : ' + e.message;
+  }
+}
+
+// ── AGG 1 : Top communes (avec bouton d'évolution par ligne) ──────────────
+async function showTopCommunes() {
+  activeBtn('btn1');
+  loading();
+  try {
+    const d = await req('/agg/top-communes?limite=10');
+    if (!d.length) { zone('<div class="card loader">Aucune donnée.</div>'); return; }
+
+    const rows = d.map((r, i) => {
+      const stars = r.attractivite
+        ? '⭐'.repeat(Math.round(r.attractivite / 2))
+        : '<em style="color:#cbd5e1">N/D</em>';
+      return `<tr>
+        <td><span class="badge badge-gris">${i+1}</span></td>
+        <td><strong>${r.commune}</strong></td>
+        <td><strong>${fmt(r.prix_m2_moyen)} €</strong></td>
+        <td>${fmt(r.nb_ventes)}</td>
+        <td>${fmt(r.valeur_totale)} €</td>
+        <td><span class="stars">${stars}</span></td>
+        <td>
+          <button class="btn" style="padding: 4px 10px; font-size: 0.78rem;" onclick="showEvolution('${r.commune}')">
+            📈 Évolution
+          </button>
+        </td>
+      </tr>`;
+    }).join('');
+
+    zone(`<div class="card">
+      <h2>🏆 Top 10 des communes les plus chères au m²</h2>
+      <p class="subtitle">
+        Source : DVF 34 · 2023-2024 &nbsp;|&nbsp;
+        Enrichi par <code>$lookup</code> sur la collection <code>communes_meta</code> &nbsp;|&nbsp;
+        Seuil : ≥ 10 ventes par commune
+      </p>
+      <table>
+        <thead><tr>
+          <th>#</th><th>Commune</th><th>Prix moyen/m²</th>
+          <th>Nb ventes</th><th>Valeur totale marché</th><th>Attractivité</th><th>Action</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`);
+  } catch(e) { err(e.message); }
+}
+
+// ── AGG 4 : Évolution par commune (accessible depuis le Top 10) ───────────
+async function showEvolution(commune = 'Montpellier') {
+  // Pas de bouton principal cliqué, ou on met le focus visuel
+  loading();
+  try {
+    const d = await req(`/agg/evolution?commune=${encodeURIComponent(commune)}`);
+    
+    // Barre de navigation pour revenir au Top 10 ou chercher une autre commune
+    const navHtml = `
+      <div style="margin-bottom: 16px; display: flex; gap: 10px; align-items: center;">
+        <button class="btn" style="padding: 6px 12px; font-size: .85rem; background: var(--muted);" onclick="showTopCommunes()">⬅️ Retour au Top 10</button>
+        <input type="text" id="commune-input" value="${commune}" style="padding: 6px 12px; border: 1px solid var(--bord); border-radius: 6px; font-size: .9rem;" />
+        <button class="btn" style="padding: 6px 14px; font-size: .85rem;" onclick="showEvolution(document.getElementById('commune-input').value)">Filtrer</button>
+      </div>
+    `;
+
+    if (!d.length) {
+      zone(`<div class="card">
+        <h2>📈 Évolution des prix au m² — ${commune}</h2>
+        ${navHtml}
+        <div class="loader" style="color:var(--rouge)">Aucune donnée trouvée pour "${commune}".</div>
+      </div>`);
+      return;
+    }
+
+    const rows = d.map(r => `<tr>
+      <td><span class="badge badge-gris">${r.mois}</span></td>
+      <td><strong>${fmt(r.prix_m2_moyen)} €</strong></td>
+      <td>${fmt(r.nb_ventes)}</td>
+    </tr>`).join('');
+
+    zone(`<div class="card">
+      <h2>📈 Évolution mensuelle du prix au m² à ${commune}</h2>
+      <p class="subtitle">Agrégation par mois (<code>$substr</code>) et calcul de la moyenne (<code>$avg</code>) sur les biens de la commune.</p>
+      ${navHtml}
+      <table>
+        <thead><tr><th>Mois (AAAA-MM)</th><th>Prix moyen/m²</th><th>Nombre de ventes</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`);
+  } catch(e) { err(e.message); }
+}
+
+// ── AGG 2 : Répartition ───────────────────────────────────────────────────
+async function showRepartition() {
+  activeBtn('btn2');
+  loading();
+  try {
+    const d = await req('/agg/repartition-biens');
+    const total = d.reduce((s, r) => s + r.count, 0);
+
+    const cards = d.map(r => {
+      const isM = r.type === 'Maison';
+      const couleur = isM ? 'badge-orange' : 'badge-bleu';
+      const icon = isM ? '🏡' : '🏢';
+      return `
+        <tr>
+          <td><span class="badge ${couleur}">${icon} ${r.type}</span></td>
+          <td>${fmt(r.count)} lots</td>
+          <td>
+            <div style="display:flex;align-items:center;gap:10px">
+              <div class="bar-wrap" style="width:200px">
+                <div class="bar-fill" style="width:${r.pourcentage}%;background:${isM?'#ea580c':'#1a56db'}"></div>
+              </div>
+              <strong>${r.pourcentage} %</strong>
+            </div>
+          </td>
+          <td>${fmt(r.valeur_moyenne)} €</td>
+        </tr>`;
+    }).join('');
+
+    zone(`<div class="card">
+      <h2>📊 Répartition Maisons vs Appartements</h2>
+      <p class="subtitle">
+        Basé sur le tableau <code>lots</code> imbriqué dans chaque document <code>ventes</code> &nbsp;|&nbsp;
+        Opérateur <code>$unwind</code> pour décompacter les lots
+      </p>
+      <table>
+        <thead><tr>
+          <th>Type de bien</th><th>Nombre de lots</th><th>Part du marché</th><th>Valeur moyenne</th>
+        </tr></thead>
+        <tbody>${cards}</tbody>
+      </table>
+      <p style="margin-top:12px;font-size:.82rem;color:var(--muted)">
+        Total analysé : <strong>${fmt(total)} lots</strong>
+      </p>
+    </div>`);
+  } catch(e) { err(e.message); }
+}
+
+// ── AGG 3 : Géospatial ────────────────────────────────────────────────────
+async function showGeospatial() {
+  activeBtn('btn3');
+  loading();
+  try {
+    const d = await req('/agg/geospatial?lat=43.6107&lng=3.8767&distance_km=5');
+    if (!d.length) { zone('<div class="card loader">Aucune vente dans ce rayon.</div>'); return; }
+
+    const rows = d.map(r => `<tr>
+      <td><strong>${r.commune}</strong></td>
+      <td>${fmt(r.nb_ventes)}</td>
+      <td>${fmt(r.prix_moyen)} €</td>
+      <td><span class="badge badge-vert">📍 ${r.distance_min_km} km</span></td>
+    </tr>`).join('');
+
+    zone(`<div class="card">
+      <h2>📍 Ventes dans un rayon de 5 km autour de Montpellier</h2>
+      <p class="subtitle">
+        Index <code>2dsphere</code> sur le champ <code>location</code> &nbsp;|&nbsp;
+        Opérateur <code>$geoNear</code> &nbsp;|&nbsp;
+        Centre : 43.6107° N, 3.8767° E
+      </p>
+      <table>
+        <thead><tr>
+          <th>Commune</th><th>Nb ventes</th><th>Prix moyen</th><th>Distance min.</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`);
+  } catch(e) { err(e.message + ' — L\'index 2dsphere est-il créé ?'); }
+}
+
+// ── AGG 4 : Évolution par commune ─────────────────────────────────────────
+async function showEvolution(commune = 'Montpellier') {
+  // Pas de bouton principal cliqué, ou on met le focus visuel
+  loading();
+  try {
+    const d = await req(`/agg/evolution?commune=${encodeURIComponent(commune)}`);
+    
+    // Barre de navigation pour revenir au Top 10 ou chercher une autre commune
+    const navHtml = `
+      <div style="margin-bottom: 16px; display: flex; gap: 10px; align-items: center;">
+        <button class="btn" style="padding: 6px 12px; font-size: .85rem; background: var(--muted);" onclick="showTopCommunes()">⬅️ Retour au Top 10</button>
+        <input type="text" id="commune-input" value="${commune}" style="padding: 6px 12px; border: 1px solid var(--bord); border-radius: 6px; font-size: .9rem;" />
+        <button class="btn" style="padding: 6px 14px; font-size: .85rem;" onclick="showEvolution(document.getElementById('commune-input').value)">Filtrer</button>
+      </div>
+    `;
+
+    if (!d.length) {
+      zone(`<div class="card">
+        <h2>📈 Évolution des prix au m² — ${commune}</h2>
+        ${navHtml}
+        <div class="loader" style="color:var(--rouge)">Aucune donnée trouvée pour "${commune}".</div>
+      </div>`);
+      return;
+    }
+
+    const rows = d.map(r => `<tr>
+      <td><span class="badge badge-gris">${r.mois}</span></td>
+      <td><strong>${fmt(r.prix_m2_moyen)} €</strong></td>
+      <td>${fmt(r.nb_ventes)}</td>
+    </tr>`).join('');
+
+    zone(`<div class="card">
+      <h2>📈 Évolution mensuelle du prix au m² à ${commune}</h2>
+      <p class="subtitle">Agrégation par mois (<code>$substr</code>) et calcul de la moyenne (<code>$avg</code>) sur les biens de la commune.</p>
+      ${navHtml}
+      <table>
+        <thead><tr><th>Mois (AAAA-MM)</th><th>Prix moyen/m²</th><th>Nombre de ventes</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`);
+  } catch(e) { err(e.message); }
+}
+
+// ── Explain ───────────────────────────────────────────────────────────────
+let explainMode = 'avant'; // 'avant' ou 'apres'
+
+async function showExplain() {
+  activeBtn('btn4');
+
+  zone(`<div class="card">
+    <h2>🔍 Plan d'exécution — explain()</h2>
+    <p class="subtitle">
+      Comparez le plan AVANT index (<code>COLLSCAN</code>) et APRÈS index (<code>FETCH ← IXSCAN</code>).
+    </p>
+    <div class="pill-group">
+      <button class="pill ${explainMode==='avant'?'on':''}" onclick="setExplainMode('avant')">AVANT index</button>
+      <button class="pill ${explainMode==='apres'?'on':''}" onclick="setExplainMode('apres')">APRÈS index (POST /admin/index)</button>
+    </div>
+    <div id="explain-result"><div class="loader">Chargement…</div></div>
+  </div>`);
+
+  await loadExplain();
+}
+
+async function setExplainMode(mode) {
+  explainMode = mode;
+  document.querySelectorAll('.pill').forEach(p => p.classList.remove('on'));
+  event.target.classList.add('on');
+
+  if (mode === 'apres') {
+    // Créer les index avant
+    try { await fetch(API + '/admin/index', {method:'POST'}); } catch(e) {}
+  } else {
+    // Supprimer les index
+    try { await fetch(API + '/admin/index', {method:'DELETE'}); } catch(e) {}
+  }
+  await loadExplain();
+}
+
+async function loadExplain() {
+  const div = document.getElementById('explain-result');
+  if (!div) return;
+  try {
+    const d = await req('/agg/explain?commune=Montpellier');
+    const indexUsed = d.index_utilise;
+    div.innerHTML = `
+      <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px">
+        <div style="flex:1;min-width:160px;background:var(--fond);border-radius:8px;padding:12px;text-align:center">
+          <div style="font-size:1.6rem;font-weight:700;color:${indexUsed?'var(--vert)':'var(--rouge)'}">
+            ${d.stage_racine}
+          </div>
+          <div style="font-size:.75rem;color:var(--muted)">Stage racine</div>
+        </div>
+        <div style="flex:1;min-width:160px;background:var(--fond);border-radius:8px;padding:12px;text-align:center">
+          <div style="font-size:1.6rem;font-weight:700">${fmt(d.totalDocsExamined)}</div>
+          <div style="font-size:.75rem;color:var(--muted)">Docs examinés</div>
+        </div>
+        <div style="flex:1;min-width:160px;background:var(--fond);border-radius:8px;padding:12px;text-align:center">
+          <div style="font-size:1.6rem;font-weight:700">${fmt(d.nReturned)}</div>
+          <div style="font-size:.75rem;color:var(--muted)">Docs retournés</div>
+        </div>
+        <div style="flex:1;min-width:160px;background:var(--fond);border-radius:8px;padding:12px;text-align:center">
+          <div style="font-size:1.6rem;font-weight:700">${d.executionTimeMillis} ms</div>
+          <div style="font-size:.75rem;color:var(--muted)">Temps d'exécution</div>
+        </div>
+      </div>
+      <div style="margin-bottom:8px">
+        <span class="badge ${indexUsed?'badge-vert':'badge-orange'}">
+          ${indexUsed ? '✅ Index utilisé : ' + d.stages.join(' ← ') : '⚠️ Pas d\'index : ' + d.stages.join(' ← ')}
+        </span>
+        &nbsp;
+        <span class="badge badge-gris">Ratio: ${d.ratio_examines_sur_rendus ?? 'N/A'}x</span>
+      </div>
+      <pre class="json">${JSON.stringify(d, null, 2)}</pre>`;
+  } catch(e) {
+    document.getElementById('explain-result').innerHTML = `<div class="error">${e.message}</div>`;
+  }
+}
+
+// Init
+checkHealth();
+</script>
+</body>
+</html>

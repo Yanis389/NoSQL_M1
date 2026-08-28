@@ -1,0 +1,24 @@
+{
+  "description": "Plan d'exécution APRÈS la création de l'index {nom_commune: 1}",
+  "date_capture": "2026-08-28",
+  "query": "db.ventes.find({ nom_commune: 'Montpellier' }).explain('executionStats')",
+  "route_api": "POST /admin/index → GET /agg/explain?commune=Montpellier",
+  "index_crees": [
+    "ventes: { nom_commune: 1 }",
+    "ventes: { nom_commune: 1, valeur_fonciere: -1 }",
+    "ventes: { location: '2dsphere' } (sparse)",
+    "ventes: { 'lots.type_local': 1 }",
+    "communes_meta: { nom_commune: 1 } (unique)"
+  ],
+  "resultats": {
+    "stages": ["FETCH", "IXSCAN"],
+    "stage_racine": "FETCH",
+    "index_utilise": true,
+    "totalDocsExamined": 5588,
+    "totalKeysExamined": 5588,
+    "nReturned": 5588,
+    "ratio_examines_sur_rendus": 1.0,
+    "executionTimeMillis": 12
+  },
+  "commentaire": "Avec l'index {nom_commune: 1}, MongoDB utilise un IXSCAN (Index Scan) pour localiser directement les entrées correspondant à 'Montpellier' dans l'arbre B-tree de l'index. Le ratio docs_examinés/docs_retournés tombe à 1.0 : chaque document examiné est un document retourné. Le temps d'exécution est réduit de 28ms à 12ms (-57%). Pour des communes rares (ex: Laroque, 15 docs), le gain serait encore plus spectaculaire : de 29 565 docs scannés à 15 seulement."
+}
